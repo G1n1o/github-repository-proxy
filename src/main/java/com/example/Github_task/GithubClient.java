@@ -3,6 +3,7 @@ package com.example.Github_task;
 
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
@@ -19,10 +20,15 @@ public class GithubClient {
     }
 
     public List<RepositoryResponse> getRepositories(String username) {
-        return restClient.get()
-                .uri("/users/{username}/repos", username)
-                .retrieve()
-                .body(new ParameterizedTypeReference<>() {});
+        try {
+            return restClient.get()
+                    .uri("/users/{username}/repos", username)
+                    .retrieve()
+                    .body(new ParameterizedTypeReference<>() {
+                    });
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new GithubUserNotFoundException(username);
+        }
     }
 
     public List<BranchResponse> getBranches(String username, String repoName) {
@@ -30,5 +36,11 @@ public class GithubClient {
                 .uri("/repos/{username}/{repo}/branches", username, repoName)
                 .retrieve()
                 .body(new ParameterizedTypeReference<>() {});
+    }
+}
+
+class GithubUserNotFoundException extends RuntimeException {
+    GithubUserNotFoundException(String username) {
+        super("User " + username + " not found");
     }
 }
