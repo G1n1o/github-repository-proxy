@@ -1,8 +1,8 @@
 package com.example.Github_task;
 
 import org.springframework.stereotype.Service;
+
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class GithubService {
@@ -15,21 +15,17 @@ public class GithubService {
 
     public List<RepositoryResponse> getRepositories(String username) {
 
-        return client.fetchRepositories(username)
-                .stream()
-                .filter(repo -> !repo.isFork())
-                .map(repo -> {
-                    List<BranchResponse> branches = client.fetchBranches(
-                            repo.getOwner().getLogin(),
-                            repo.getName()
-                    );
+        List<RepositoryResponse> repositories =
+                client.getRepositories(username);
 
-                    return new RepositoryResponse(
-                            repo.getName(),
-                            repo.getOwner().getLogin(),
-                            branches
-                    );
-                })
-                .collect(Collectors.toList());
+        for (RepositoryResponse repo : repositories) {
+            if (!repo.isFork()) {
+                repo.setBranches(
+                        client.getBranches(username, repo.getRepositoryName())
+                );
+            }
+        }
+
+        return repositories;
     }
 }
