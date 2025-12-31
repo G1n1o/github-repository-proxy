@@ -3,31 +3,17 @@ package com.example.Github_task;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-
 @JsonPropertyOrder({"name", "lastCommitSha"})
-public class BranchResponse {
+public record BranchResponse(
+        String name,
 
-    private String name;
-    @JsonProperty(value = "commit", access = JsonProperty.Access.WRITE_ONLY)
-    private Commit commit;
-
-    public BranchResponse() {
-    }
-
-    public String getName() {
-        return name;
-    }
+        @JsonProperty(value = "commit", access = JsonProperty.Access.WRITE_ONLY)
+        Commit commit
+) {
 
     public String getLastCommitSha() {
-        return commit.getSha();
+        return commit.sha();
     }
 
-    public static class Commit {
-        private String sha;
-
-        public String getSha() {
-            return sha;
-        }
-    }
+    public record Commit(String sha) {}
 }
-
