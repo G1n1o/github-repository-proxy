@@ -7,42 +7,23 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import java.util.List;
 
 @JsonPropertyOrder({"repositoryName", "ownerLogin", "branches"})
-public class RepositoryResponse {
+public record RepositoryResponse(
 
-    @JsonAlias("name")
-    private String repositoryName;
-    @JsonProperty(value = "owner", access = JsonProperty.Access.WRITE_ONLY)
-    private Owner owner;
-    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
-    private boolean fork;
+        @JsonAlias("name")
+        String repositoryName,
 
-    private List<BranchResponse> branches;
+        @JsonProperty(value = "owner", access = JsonProperty.Access.WRITE_ONLY)
+        Owner owner,
 
-    public String getRepositoryName() {
-        return repositoryName;
-    }
+        @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+        boolean fork,
+
+        List<BranchResponse> branches
+) {
 
     public String getOwnerLogin() {
-        return owner.getLogin();
+        return owner.login();
     }
 
-    public boolean isFork() {
-        return fork;
-    }
-
-    public List<BranchResponse> getBranches() {
-        return branches;
-    }
-
-    public void setBranches(List<BranchResponse> branches) {
-        this.branches = branches;
-    }
-
-    static class Owner {
-        private String login;
-
-        public String getLogin() {
-            return login;
-        }
-    }
+    public record Owner(String login) {}
 }

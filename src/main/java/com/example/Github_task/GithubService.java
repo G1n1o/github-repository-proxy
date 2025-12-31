@@ -20,11 +20,15 @@ public class GithubService {
         List<RepositoryResponse> result = new ArrayList<>();
 
         for (RepositoryResponse repo : repositories) {
-            if (!repo.isFork()) {
-                repo.setBranches(
-                        client.getBranches(username, repo.getRepositoryName())
+            if (!repo.fork()) {
+                result.add(
+                        new RepositoryResponse(
+                                repo.repositoryName(),
+                                repo.owner(),
+                                repo.fork(),
+                                client.getBranches(username, repo.repositoryName())
+                        )
                 );
-                result.add(repo);
             }
         }
 
