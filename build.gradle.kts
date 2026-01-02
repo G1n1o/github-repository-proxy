@@ -23,6 +23,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-restclient")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.wiremock:wiremock-standalone:3.13.2")
+
 }
 
 tasks.withType<Test> {
