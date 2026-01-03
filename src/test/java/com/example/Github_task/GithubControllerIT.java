@@ -4,8 +4,10 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.web.servlet.client.RestTestClient;
 
 import java.util.List;
 
@@ -19,6 +21,9 @@ class GithubControllerIT {
 
     @Autowired
     private GithubService githubService;
+
+    @LocalServerPort
+    int port;
 
     @BeforeAll
     static void startWireMock() {
@@ -44,46 +49,47 @@ class GithubControllerIT {
     }
 
     @Test
-    void shouldReturnRepositoriesWithBranches() {
+    void shouldReturnRepositoriesViaHttpEndpoint() {
 
-        stubFor(get(urlEqualTo("/users/testuser/repos"))
-                .willReturn(okJson("""
-                    [
-                      { "name": "repo1", "fork": false, "owner": { "login": "testuser" } }
-                    ]
-                """)));
+        RestTestClient client = RestTestClient.bindToServer()
+                .baseUrl("http://localhost:" + port)
+                .build();
 
+        stubReposWithForkAndNonFork();
+        stubBranches();
 
-        stubFor(get(urlEqualTo("/repos/testuser/repo1/branches"))
-                .willReturn(okJson("""
-                    [
-                      { "name": "main", "commit": { "sha": "abc123" } }
-                    ]
-                """)));
+        client.get()
+                .uri("/github/testuser")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.length()").isEqualTo(1)
+                .jsonPath("$[0].repositoryName").isEqualTo("repo1")
+                .jsonPath("$[0].ownerLogin").isEqualTo("testuser")
+                .jsonPath("$[0].branches[0].lastCommitSha").isEqualTo("abc123");
+    }
+
+    @Test
+    void shouldReturnRepositoriesWithBranchesAndIgnoreForks() {
+
+        stubReposWithForkAndNonFork();
+        stubBranches();
 
         List<RepositoryResponse> response = githubService.getRepositories("testuser");
 
         assertThat(response).hasSize(1);
 
         RepositoryResponse repo = response.getFirst();
-        BranchResponse branch = repo.branches().getFirst();
 
         assertThat(repo.repositoryName()).isEqualTo("repo1");
-        assertThat(repo.getOwnerLogin()).isEqualTo("testuser");
         assertThat(repo.branches()).hasSize(1);
-        assertThat(branch.name()).isEqualTo("main");
-        assertThat(branch.getLastCommitSha()).isEqualTo("abc123");
     }
 
     @Test
     void shouldReturn404WhenUserNotFound() {
 
         stubFor(get(urlEqualTo("/users/unknown/repos"))
-                .willReturn(aResponse()
-                        .withStatus(404)
-                        .withBody("""
-                            { "message": "Not Found" }
-                        """)));
+                .willReturn(aResponse().withStatus(404)));
 
 
         try {
@@ -91,5 +97,26 @@ class GithubControllerIT {
         } catch (GithubUserNotFoundException e) {
             assertThat(e.getMessage()).contains("unknown");
         }
+    }
+
+
+    // ---------- STUBS ----------
+    private void stubReposWithForkAndNonFork() {
+        stubFor(get(urlEqualTo("/users/testuser/repos"))
+                .willReturn(okJson("""
+                    [
+                      { "name": "repo1", "fork": false, "owner": { "login": "testuser" } },
+                      { "name": "repo2", "fork": true,  "owner": { "login": "testuser" } }
+                    ]
+                """)));
+    }
+
+    private void stubBranches() {
+        stubFor(get(urlEqualTo("/repos/testuser/repo1/branches"))
+                .willReturn(okJson("""
+                    [
+                      { "name": "main", "commit": { "sha": "abc123" } }
+                    ]
+                """)));
     }
 }
