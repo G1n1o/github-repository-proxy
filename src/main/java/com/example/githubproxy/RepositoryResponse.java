@@ -1,4 +1,4 @@
-package com.example.Github_task;
+package com.example.githubproxy;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;

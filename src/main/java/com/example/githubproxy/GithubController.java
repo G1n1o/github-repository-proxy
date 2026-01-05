@@ -1,4 +1,4 @@
-package com.example.Github_task;
+package com.example.githubproxy;
 
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,12 +14,12 @@ public class GithubController {
 
     private final GithubService service;
 
-    public GithubController(GithubService service) {
+    public GithubController(final GithubService service) {
         this.service = service;
     }
 
     @GetMapping("/{username}")
-    public List<RepositoryResponse> getRepositories(@PathVariable String username) {
+    public List<RepositoryResponse> getRepositories(@PathVariable final String username) {
         return service.getRepositories(username);
     }
 }

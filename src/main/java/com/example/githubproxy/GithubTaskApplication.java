@@ -1,4 +1,4 @@
-package com.example.Github_task;
+package com.example.githubproxy;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

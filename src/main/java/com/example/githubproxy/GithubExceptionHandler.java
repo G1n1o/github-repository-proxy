@@ -1,4 +1,4 @@
-package com.example.Github_task;
+package com.example.githubproxy;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +12,7 @@ import java.util.Map;
 class GithubExceptionHandler {
 
     @ExceptionHandler(GithubUserNotFoundException.class)
-    ResponseEntity<Map<String, Object>> handleNotFound(GithubUserNotFoundException ex) {
+    ResponseEntity<Map<String, Object>> handleNotFound(final GithubUserNotFoundException ex) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", 404);
         body.put("message", ex.getMessage());

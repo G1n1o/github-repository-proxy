@@ -1,10 +1,13 @@
-package com.example.Github_task;
+package com.example.githubproxy;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.client.RestTestClient;
@@ -15,6 +18,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureRestTestClient
 class GithubControllerIT {
 
     static WireMockServer wireMockServer;
@@ -22,8 +26,8 @@ class GithubControllerIT {
     @Autowired
     private GithubService githubService;
 
-    @LocalServerPort
-    int port;
+    @Autowired
+    private RestTestClient client;
 
     @BeforeAll
     static void startWireMock() {
@@ -51,10 +55,6 @@ class GithubControllerIT {
     @Test
     void shouldReturnRepositoriesViaHttpEndpoint() {
 
-        RestTestClient client = RestTestClient.bindToServer()
-                .baseUrl("http://localhost:" + port)
-                .build();
-
         stubReposWithForkAndNonFork();
         stubBranches();
 
@@ -67,6 +67,20 @@ class GithubControllerIT {
                 .jsonPath("$[0].repositoryName").isEqualTo("repo1")
                 .jsonPath("$[0].ownerLogin").isEqualTo("testuser")
                 .jsonPath("$[0].branches[0].lastCommitSha").isEqualTo("abc123");
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenUserHasNoRepositories() {
+
+        stubFor(get(urlEqualTo("/users/emptyuser/repos"))
+                .willReturn(okJson("[]")));
+
+        client.get()
+                .uri("/github/emptyuser")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .json("[]");
     }
 
     @Test
@@ -86,17 +100,18 @@ class GithubControllerIT {
     }
 
     @Test
-    void shouldReturn404WhenUserNotFound() {
+    void shouldReturn404WhenUserNotFoundViaHttp() {
 
         stubFor(get(urlEqualTo("/users/unknown/repos"))
                 .willReturn(aResponse().withStatus(404)));
 
-
-        try {
-            githubService.getRepositories("unknown");
-        } catch (GithubUserNotFoundException e) {
-            assertThat(e.getMessage()).contains("unknown");
-        }
+        client.get()
+                .uri("/github/unknown")
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo(404)
+                .jsonPath("$.message").exists();
     }
 
 
